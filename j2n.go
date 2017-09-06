@@ -23,12 +23,12 @@ import (
 */
 
 type J2N interface {
-	SetStubNode(node_id int) J2N
+	SetStubNode(node_id int64) J2N
 	SetRootLabel(sl string) J2N
 	SetRootName(n string) J2N
 	SetConn(conn golangNeo4jBoltDriver.Conn) J2N
-	Insert(data interface{}) (id int)
-	Submit(data interface{}) (id int)
+	Insert(data interface{}) (id int64 , count int)
+	Submit(data interface{}) (id int64 , count int)
 
 	execCypher(cypher_part string) interface{}
 
@@ -50,34 +50,31 @@ type J2N interface {
 type j2n struct {
 	sync.Mutex
 	sync.WaitGroup
+	total_nodes int
 	neo_conn    golangNeo4jBoltDriver.Conn
 	has_conn    bool
 	data        interface{}
-	data_array  []interface{}
-	data_object map[string]interface{}
 	data_type   string
 	cypher      []string
+	root_id     int64
 	root_name   string
 	root_label  string
-	root_var    string
 	has_stub    bool
 	stub_cypher string
 }
 
-func (this *j2n) SetStubNode(node_id int) J2N {
-	this.stub_cypher = fmt.Sprintf("MATCH (%s) WHERE ID(%s) = %d\n", VAR_STUB, VAR_STUB, node_id)
-	//this.appendToCypher(cypher)
-	this.has_stub = true
+func (this *j2n) SetStubNode(node_id int64) J2N {
+	this.stub_cypher , this.has_stub = fmt.Sprintf("MATCH (%s) WHERE ID(%s) = %d\n", VAR_STUB, VAR_STUB, node_id) , true
 	return this
 }
 
 func (this *j2n) SetConn(conn golangNeo4jBoltDriver.Conn) J2N {
-	this.neo_conn = conn
-	this.has_conn = true
+	this.neo_conn, this.has_conn = conn, true
 	return this
 }
 
 func (this *j2n) SetRootLabel(rl string) J2N {
+	//TODO:: panic if it have :! only one label are accepted!
 	this.root_label = fmt.Sprintf(":%s", strings.ToUpper(rl))
 	return this
 }
@@ -87,13 +84,12 @@ func (this *j2n) SetRootName(n string) J2N {
 	return this
 }
 
-func (this *j2n) Submit(data interface{}) (id int) {
+func (this *j2n) Submit(data interface{}) (id int64 , count int) {
 	return this.Insert(data)
 }
 
-func (this *j2n) Insert(data interface{}) (id int) {
+func (this *j2n) Insert(data interface{}) (id int64 , count int) {
 	fmt.Println("START:", time.Now().Unix())
-
 	if !this.has_conn {
 		panic("Neo4j connection not found!")
 	}
@@ -107,13 +103,8 @@ func (this *j2n) Insert(data interface{}) (id int) {
 		panic(fmt.Sprintf("Only '[]interface{}' and 'map[string]interface{}' are accepted, given: '%T'", data))
 	}
 	this.cypherGenerator()
-
-	//fmt.Println(this.cypher)
-
 	this.Wait()
-
-	//for {}
-	return 0
+	return this.root_id , this.total_nodes
 }
 
 func (this *j2n) execCypher(cypher_part string) (res interface{}) {
@@ -128,6 +119,7 @@ func (this *j2n) execCypher(cypher_part string) (res interface{}) {
 			r, _, _ := result.All()
 			res = r[0][0]
 			result.Close()
+			this.total_nodes++
 		} else {
 			panic(err)
 		}
@@ -137,6 +129,7 @@ func (this *j2n) execCypher(cypher_part string) (res interface{}) {
 }
 
 func (this *j2n) cypherGenerator() {
+	//TODO:: Pipeline!
 	var type_label string
 	switch this.data_type {
 	case TYPE_ARRAY:
@@ -169,6 +162,7 @@ func (this *j2n) cypherGenerator() {
 		panic("Cannot create root node!")
 	default:
 		c <- int(node_id.(int64))
+		this.root_id = node_id.(int64)
 		base.Warning("root_node_id:", node_id, time.Now().Unix())
 	}
 
