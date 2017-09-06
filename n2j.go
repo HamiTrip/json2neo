@@ -81,6 +81,25 @@ func (this *n2j) Retrieve() interface{} {
 	return this.out
 }
 
+func (this *n2j)getOutOfLevel(rels []interface{}, o interface{}) interface{}{
+	if len(rels) == 1 {
+		return o
+	}else {
+		return this.getOutOfLevel(rels[1:],getOK(o,rels))
+	}
+
+}
+
+func getOK(o ,key  interface{}) interface {}{
+	switch o.(type) {
+	case map[string]interface{}:
+		return o.(map[string]interface{})[key.(string)]
+	case []interface{}:
+		return o.([]interface{})[key.(int)]
+	}
+	return nil
+}
+
 func (this *n2j)addToOut(parent_id, node_id int64, k, node interface{}, node_type string) {
 	base.Warning("this.nodes_map:", this.nodes_map)
 	base.Warning("parent_id:", parent_id)
@@ -88,12 +107,12 @@ func (this *n2j)addToOut(parent_id, node_id int64, k, node interface{}, node_typ
 
 	switch this.nodes_map[parent_id].(type) {
 	case map[string]interface{}:
-		this.nodes_map[parent_id].(map[string]interface{})[k.(string)] = prepairNodeToAdd(node, node_type)
+		this.nodes_map[parent_id].(map[string]interface{})[k.(string)] = prepareNodeToAdd(node, node_type)
 
 		this.nodes_map[node_id] = this.nodes_map[parent_id].(map[string]interface{})[k.(string)]
 
 	case []interface{}:
-		this.nodes_map[parent_id] = append(this.nodes_map[parent_id].([]interface{}), prepairNodeToAdd(node, node_type))
+		this.nodes_map[parent_id] = append(this.nodes_map[parent_id].([]interface{}), prepareNodeToAdd(node, node_type))
 
 		this.nodes_map[node_id] = this.nodes_map[parent_id].([]interface{})[len(this.nodes_map[parent_id].([]interface{})) - 1]
 
@@ -103,7 +122,7 @@ func (this *n2j)addToOut(parent_id, node_id int64, k, node interface{}, node_typ
 
 }
 
-func prepairNodeToAdd(v interface{}, node_type string) interface{} {
+func prepareNodeToAdd(v interface{}, node_type string) interface{} {
 	switch node_type{
 	case TYPE_ARRAY:
 		return extractArrayNode(v.(map[string]interface{}))
