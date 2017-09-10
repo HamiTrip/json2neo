@@ -89,7 +89,7 @@ func (this *j2n) Submit(data interface{}) (id int64 , count int) {
 }
 
 func (this *j2n) Insert(data interface{}) (id int64 , count int) {
-	fmt.Println("START:", time.Now().Unix())
+	//fmt.Println("START:", time.Now().Unix())
 	if !this.has_conn {
 		panic("Neo4j connection not found!")
 	}
@@ -197,6 +197,8 @@ func (this *j2n) create_nested(node_key interface{}, parent_var, parent_type, no
 	var cName string
 	if parent_type == TYPE_OBJECT {
 		cName = fmt.Sprintf(",name:'%v'", node_key)
+	}else if parent_type == TYPE_ARRAY {
+		cName = fmt.Sprintf(",name:'%v'", node_key)
 	}
 	parent_node_id := <-parent_c
 	parent_c <- parent_node_id
@@ -219,7 +221,7 @@ func (this *j2n) create_nested(node_key interface{}, parent_var, parent_type, no
 		panic("Cannot create node: " + cypher)
 	default:
 		c <- int(node_id.(int64))
-		fmt.Println("node_id:", node_id, time.Now().Unix())
+		//fmt.Println("node_id:", node_id, time.Now().Unix())
 		this.Done()
 	}
 }
