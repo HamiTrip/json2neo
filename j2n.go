@@ -7,7 +7,6 @@ import (
 	"sync"
 	"github.com/johnnadratowski/golang-neo4j-bolt-driver"
 	"time"
-	"hami/ums/base"
 )
 
 /*
@@ -112,9 +111,7 @@ func (this *j2n) execCypher(cypher_part string) (res interface{}) {
 		this.Lock()
 		//this.cypher += fmt.Sprintf(" %s ", cypher_part)
 		//this.cypher = append(this.cypher, fmt.Sprintf(" %s ", cypher_part))
-		//base.Warning("start cypher:", cypher_part)
 		result, err := this.neo_conn.QueryNeo(cypher_part, map[string]interface{}{})
-		//base.Warning("ended cypher:", cypher_part)
 		if err == nil {
 			r, _, _ := result.All()
 			res = r[0][0]
@@ -163,7 +160,7 @@ func (this *j2n) cypherGenerator() {
 	default:
 		c <- int(node_id.(int64))
 		this.root_id = node_id.(int64)
-		base.Warning("root_node_id:", node_id, time.Now().Unix())
+		fmt.Println("root_node_id:", node_id, time.Now().Unix())
 	}
 
 }
