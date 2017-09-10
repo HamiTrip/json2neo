@@ -7,33 +7,97 @@ import (
 	"sync"
 	"strconv"
 	"fmt"
+	"strings"
 )
 
+//TODO:: refactor to a better method!
 type N2J interface {
+	SetStubNode(node_id int64) N2J
+	SetRootLabel(sl string) N2J
+	SetRootName(n string) N2J
 	SetConn(conn golangNeo4jBoltDriver.Conn) N2J
 	SetRootNodeID(id int64) N2J
 	Retrieve() interface{}
 }
 
 type n2j struct {
-	//TODO bayad bejaye [] az map[int] use konamd
 	sync.Mutex
 	sync.WaitGroup
-	out        interface{}
-	neo_conn   golangNeo4jBoltDriver.Conn
-	has_conn   bool
-	root_id    int64
-	root_node  graph.Node
-	root_name  string
-	root_label string
-	root_type  string
-	nodes_map  map[int64]interface{}
+	out                 interface{}
+	neo_conn            golangNeo4jBoltDriver.Conn
+	has_conn            bool
+	root_id             int64
+	root_node           graph.Node
+	root_name           string
+	root_label          string
+	root_type           string
+	nodes_map           map[int64]interface{}
+	stub_node_id        int64
+	stub_node_id_filled bool
+	stub_node_label     string
+	stub_node_name      string
+	multi_root_found    bool
+}
+
+func (this *n2j) SetStubNode(node_id int64) N2J {
+	this.stub_node_id = node_id
+	this.stub_node_id_filled = true
+	this.findRootNodeIDByStub()
+	return this
+}
+
+func (this *n2j) SetRootLabel(sl string) N2J {
+	this.stub_node_label = sl
+	this.findRootNodeIDByStub()
+	return this
+}
+
+func (this *n2j) SetRootName(n string) N2J {
+	this.stub_node_name = n
+	this.findRootNodeIDByStub()
+	return this
+}
+
+func (this *n2j) findRootNodeIDByStub() {
+	var cypher string = "MATCH %s(root%s) WHERE %s AND %v RETURN ID(root)"
+	var label, name, id , pre_id string
+	if this.stub_node_label != "" {
+		label = ":" + strings.ToUpper(this.stub_node_label)
+	}
+	if this.stub_node_id_filled {
+		pre_id=fmt.Sprintf("(stub)-[rel%s]->",label)
+		id = fmt.Sprintf("ID(stub) = %d", this.stub_node_id)
+	}else {
+		id = "true"
+	}
+	if this.stub_node_name != "" {
+		name = fmt.Sprintf("root.%s = '%s'", ROOT_NAME_KEY, this.stub_node_name)
+	} else {
+		name = "true"
+	}
+	cypher = fmt.Sprintf(cypher,
+		pre_id,
+		label,
+		id,
+		name,
+	)
+	res, _, _, err := this.neo_conn.QueryNeoAll(cypher, map[string]interface{}{})
+	if err != nil {
+		panic(err)
+	}
+	if len(res) == 0 {
+		panic("stub_not_found")
+	}
+	this.root_id = res[0][0].(int64)
+	this.multi_root_found = len(res) > 1
 }
 
 func (this *n2j) SetRootNodeID(id int64) N2J {
 	this.root_id = id
+	this.multi_root_found = false
 	return this
 }
+
 func (this *n2j) SetConn(conn golangNeo4jBoltDriver.Conn) N2J {
 	this.neo_conn, this.has_conn = conn, true
 	return this
@@ -41,10 +105,12 @@ func (this *n2j) SetConn(conn golangNeo4jBoltDriver.Conn) N2J {
 
 func (this *n2j) Retrieve() interface{} {
 	if !this.has_conn {
-		panic("Neo4j connection not found!")
+		panic("neo4j_connection_not_found")
+	}
+	if this.multi_root_found {
+		panic("multiple_root_nodes_found")
 	}
 	this.nodes_map = make(map[int64]interface{})
-	//TODO:: modelaye dige ham bayad beshe peyda kone ba parent masalan
 	var cypher string
 	this.queryBuilder(&cypher, this.maxLenFinder() + 1)
 	res, _, _, err := this.neo_conn.QueryNeoAll(cypher, gin.H{})
@@ -52,8 +118,9 @@ func (this *n2j) Retrieve() interface{} {
 		panic(err)
 	}
 	var result map[string]interface{} = res[0][0].(map[string]interface{})
-
-	this.root_name = result[ROOT_NAME_KEY].(string)
+	if v, ok := result[ROOT_NAME_KEY]; ok {
+		this.root_name = v.(string)
+	}
 	var root_labels []interface{} = result[LABELS_KEY].([]interface{})
 	switch len(root_labels) {
 	case 2:
@@ -64,7 +131,6 @@ func (this *n2j) Retrieve() interface{} {
 	}
 	delete(result, LABELS_KEY)
 	this.out = makeNode(result, this.root_type)
-
 	return this.out
 
 }
@@ -140,18 +206,12 @@ func (this *n2j) maxLenFinder() int {
 }
 
 func (this *n2j) queryBuilder(query *string, size int) {
-	//ROOT_NAME_KEY
-	//TYPE_KEY
-	//DATA_KEY
-
 	*query += fmt.Sprintf("START root1=node(%d)\n", this.root_id)
-
 	for i := 1; i < size; i++ {
 		itext := strconv.Itoa(i)
 		iplus := strconv.Itoa(i + 1)
 		*query += "OPTIONAL MATCH (root" + itext + ")-[rel" + iplus + "]->(root" + iplus + ")\n"
 	}
-
 	for i := size; i > 0; i-- {
 		itext := strconv.Itoa(i)
 		var data string
@@ -177,7 +237,6 @@ func (this *n2j) queryBuilder(query *string, size int) {
 		}
 		*query += data + "\n"
 	}
-
 	*query += "RETURN root1"
 }
 
