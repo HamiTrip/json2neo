@@ -10,15 +10,7 @@ import (
 )
 
 /*
-//NEO orm?! ke json ham dare!?
-//Neo connectoro ioc (dependency injection) begire! ye interface ke
-
-//TODO:: har node bayad unique id khodesho dashte bashe ta baraye update ha va ... estefade beshe , masalan Assign dar TSP!! (inheritance)
-//TODO:: yebare ye query model e json ham bezanam ke query bezane?? :-/
-
-//TODO:: ham-level haro async bezane!!
-
-//TODO:: support baraye struct!
+TODO:: support for struct!
 */
 
 type J2N interface {
@@ -30,20 +22,8 @@ type J2N interface {
 	Submit(data interface{}) (id int64 , count int)
 
 	execCypher(cypher_part string) interface{}
-
 	cypherGenerator()
-
 	create_nested(node_key interface{}, parent_var, parent_type, node_type, node_var string, properties interface{}, parent_c chan int)
-	/*
-		createRootArray(label, name, parent_var string, properties []interface{}) (node_var string) // mitunan hamun nested creatora besazanesh!
-		createRootObject(label, name, parent_var string, properties map[string]interface{}) (node_var string)
-
-		create_nested_array_of_array_parent(parent_var string, properties []interface{}) (node_var string)
-		create_nested_array_of_object_parent(parent_var, name string, properties []interface{}) (node_var string)
-
-		create_nested_object_of_object_parent(parent_var, name string, properties map[string]interface{}) (node_var string)
-		create_nested_object_of_array_parent(parent_var string, properties map[string]interface{}) (node_var string)
-	*/
 }
 
 type j2n struct {
@@ -54,7 +34,6 @@ type j2n struct {
 	has_conn    bool
 	data        interface{}
 	data_type   string
-	cypher      []string
 	root_id     int64
 	root_name   string
 	root_label  string
@@ -73,7 +52,9 @@ func (this *j2n) SetConn(conn golangNeo4jBoltDriver.Conn) J2N {
 }
 
 func (this *j2n) SetRootLabel(rl string) J2N {
-	//TODO:: panic if it have :! only one label are accepted!
+	if strings.Contains(rl,":"){
+		panic("Only one lable are accepted!")
+	}
 	this.root_label = fmt.Sprintf(":%s", strings.ToUpper(rl))
 	return this
 }
@@ -88,7 +69,6 @@ func (this *j2n) Submit(data interface{}) (id int64 , count int) {
 }
 
 func (this *j2n) Insert(data interface{}) (id int64 , count int) {
-	//fmt.Println("START:", time.Now().Unix())
 	if !this.has_conn {
 		panic("Neo4j connection not found!")
 	}
@@ -109,8 +89,6 @@ func (this *j2n) Insert(data interface{}) (id int64 , count int) {
 func (this *j2n) execCypher(cypher_part string) (res interface{}) {
 	if strings.TrimSpace(cypher_part) != "" {
 		this.Lock()
-		//this.cypher += fmt.Sprintf(" %s ", cypher_part)
-		//this.cypher = append(this.cypher, fmt.Sprintf(" %s ", cypher_part))
 		result, err := this.neo_conn.QueryNeo(cypher_part, map[string]interface{}{})
 		if err == nil {
 			r, _, _ := result.All()
@@ -152,7 +130,6 @@ func (this *j2n) cypherGenerator() {
 		sfc,
 		VAR_ROOT,
 	)
-
 	var node_id interface{} = this.execCypher(cypher)
 	switch {
 	case node_id == nil:
@@ -218,7 +195,6 @@ func (this *j2n) create_nested(node_key interface{}, parent_var, parent_type, no
 		panic("Cannot create node: " + cypher)
 	default:
 		c <- int(node_id.(int64))
-		//fmt.Println("node_id:", node_id, time.Now().Unix())
 		this.Done()
 	}
 }
@@ -240,7 +216,6 @@ func (this *j2n) getFieldsCypherPart(data interface{}, node_var, node_type strin
 	default:
 		panic(fmt.Sprintf("Only '[]interface{}' and 'map[string]interface{}' are accepted in getFieldsCypherPart, given: '%T'", data))
 	}
-
 	return
 }
 
@@ -252,13 +227,9 @@ func (this *j2n) makeField(k, v interface{}, parent_var, parent_type string, par
 	var node_var string = fmt.Sprintf("%s_%v", parent_var, k)
 	switch reflect.ValueOf(v).Kind() {
 	case reflect.Array, reflect.Slice:
-		//defer func(){go this.create_nested(k, parent_var, parent_type, TYPE_ARRAY, node_var, v)}()
-		//defer this.create_nested(k, parent_var, parent_type, TYPE_ARRAY, node_var, v)
 		this.Add(1)
 		go this.create_nested(k, parent_var, parent_type, TYPE_ARRAY, node_var, v, parent_c)
 	case reflect.Map:
-		//defer func(){go this.create_nested(k, parent_var, parent_type, TYPE_OBJECT, node_var, v)}()
-		//defer this.create_nested(k, parent_var, parent_type, TYPE_OBJECT, node_var, v)
 		this.Add(1)
 		go this.create_nested(k, parent_var, parent_type, TYPE_OBJECT, node_var, v, parent_c)
 	case reflect.Struct:
@@ -271,13 +242,12 @@ func (this *j2n) makeField(k, v interface{}, parent_var, parent_type string, par
 		switch k.(type) {
 		case string:
 			key = k.(string)
+			key = strings.Replace(key,"-","_",-1)
 		case int:
 			key = fmt.Sprintf("k_%v", k)
 		}
-
 		return fmt.Sprintf("%v:'%v'", key, v), true
 	}
-
 	return
 }
 

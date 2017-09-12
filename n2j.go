@@ -3,7 +3,6 @@ package json2neo
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/johnnadratowski/golang-neo4j-bolt-driver"
-	"github.com/johnnadratowski/golang-neo4j-bolt-driver/structures/graph"
 	"sync"
 	"strconv"
 	"fmt"
@@ -27,11 +26,10 @@ type n2j struct {
 	neo_conn            golangNeo4jBoltDriver.Conn
 	has_conn            bool
 	root_id             int64
-	root_node           graph.Node
-	root_name           string
-	root_label          string
+	//root_node           graph.Node
+	//root_name           string
+	//root_label          string
 	root_type           string
-	nodes_map           map[int64]interface{}
 	stub_node_id        int64
 	stub_node_id_filled bool
 	stub_node_label     string
@@ -60,14 +58,14 @@ func (this *n2j) SetRootName(n string) N2J {
 
 func (this *n2j) findRootNodeIDByStub() {
 	var cypher string = "MATCH %s(root%s) WHERE %s AND %v RETURN ID(root)"
-	var label, name, id , pre_id string
+	var label, name, id, pre_id string
 	if this.stub_node_label != "" {
 		label = ":" + strings.ToUpper(this.stub_node_label)
 	}
 	if this.stub_node_id_filled {
-		pre_id=fmt.Sprintf("(stub)-[rel%s]->",label)
+		pre_id = fmt.Sprintf("(stub)-[rel%s]->", label)
 		id = fmt.Sprintf("ID(stub) = %d", this.stub_node_id)
-	}else {
+	} else {
 		id = "true"
 	}
 	if this.stub_node_name != "" {
@@ -110,7 +108,6 @@ func (this *n2j) Retrieve() interface{} {
 	if this.multi_root_found {
 		panic("multiple_root_nodes_found")
 	}
-	this.nodes_map = make(map[int64]interface{})
 	var cypher string
 	this.queryBuilder(&cypher, this.maxLenFinder() + 1)
 	res, _, _, err := this.neo_conn.QueryNeoAll(cypher, gin.H{})
@@ -118,15 +115,15 @@ func (this *n2j) Retrieve() interface{} {
 		panic(err)
 	}
 	var result map[string]interface{} = res[0][0].(map[string]interface{})
-	if v, ok := result[ROOT_NAME_KEY]; ok {
+	/*if v, ok := result[ROOT_NAME_KEY]; ok {
 		this.root_name = v.(string)
-	}
+	}*/
 	var root_labels []interface{} = result[LABELS_KEY].([]interface{})
 	switch len(root_labels) {
 	case 2:
 		this.root_type = TypeToLabel[root_labels[1].(string)]
 	case 3:
-		this.root_label = root_labels[0].(string)
+		//this.root_label = root_labels[0].(string)
 		this.root_type = TypeToLabel[root_labels[2].(string)]
 	}
 	delete(result, LABELS_KEY)
