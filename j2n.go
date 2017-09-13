@@ -10,7 +10,9 @@ import (
 )
 
 /*
+TODO:: write tests and benchmarks
 TODO:: support for struct!
+TODO:: if wrote a method for get json instantly, must check json validity
 */
 
 type J2N interface {

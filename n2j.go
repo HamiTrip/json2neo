@@ -7,7 +7,6 @@ import (
 	"strconv"
 	"fmt"
 	"strings"
-	"hami/ums/base/log"
 )
 
 //TODO:: refactor to a better method!
@@ -101,6 +100,15 @@ func (this *n2j) SetConn(conn golangNeo4jBoltDriver.Conn) N2J {
 	this.neo_conn, this.has_conn = conn, true
 	return this
 }
+func findTypeByLables(labels []interface{}) string {
+	if firstPlace(labels, L_ARR_PROP) >= 0 {
+		return TypeToLabel[L_ARR_PROP]
+	}
+	if firstPlace(labels, L_OBJ_PROP) >= 0 {
+		return TypeToLabel[L_OBJ_PROP]
+	}
+	return ""
+}
 
 func (this *n2j) Retrieve() interface{} {
 	if !this.has_conn {
@@ -117,12 +125,7 @@ func (this *n2j) Retrieve() interface{} {
 	}
 	var result map[string]interface{} = res[0][0].(map[string]interface{})
 	var root_labels []interface{} = result[LABELS_KEY].([]interface{})
-	switch len(root_labels) {
-	case 2:
-		this.root_type = TypeToLabel[root_labels[1].(string)]
-	case 3:
-		this.root_type = TypeToLabel[root_labels[2].(string)]
-	}
+	this.root_type = findTypeByLables(root_labels)
 	delete(result, LABELS_KEY)
 	this.out = makeNode(result, this.root_type)
 	return this.out
@@ -157,12 +160,12 @@ func makeNode(node map[string]interface{}, node_type string) interface{} {
 		}
 		delete(node, DATA_KEY)
 	}
-	log.Warning("node:", node)
 	for k, v := range node {
 		switch node_type {
 		case TYPE_OBJECT:
 			outObject[k] = v
 		case TYPE_ARRAY:
+			//TODO:: write a func for convert keys:
 			i, _ := strconv.Atoi(strings.Split(k, "_")[1])
 			outArray[i] = v
 		}
