@@ -35,7 +35,6 @@ func DeleteBulkNodes(neo_conn golangNeo4jBoltDriver.Conn, stub_node_id int64, st
 		name,
 		except,
 	)
-	fmt.Println("cypher:",cypher)
 	res, err := neo_conn.ExecNeo(cypher, map[string]interface{}{})
 	if err != nil {
 		return res, err
