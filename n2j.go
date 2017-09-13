@@ -163,6 +163,7 @@ func makeNode(node map[string]interface{}, node_type string) interface{} {
 		case TYPE_OBJECT:
 			outObject[k] = v
 		case TYPE_ARRAY:
+			//TODO:: write a func for convert keys:
 			i, _ := strconv.Atoi(strings.Split(k, "_")[1])
 			outArray[i] = v
 		}
