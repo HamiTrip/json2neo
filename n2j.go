@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"fmt"
 	"strings"
+	"hami/ums/base/log"
 )
 
 //TODO:: refactor to a better method!
@@ -66,12 +67,12 @@ func (this *n2j) findRootNodeIDByStub() {
 		pre_id = fmt.Sprintf("(stub)-[rel%s]->", label)
 		id = fmt.Sprintf("ID(stub) = %d", this.stub_node_id)
 	} else {
-		id = "true"
+		id = VALUE_TRUE
 	}
 	if this.stub_node_name != "" {
 		name = fmt.Sprintf("root.%s = '%s'", ROOT_NAME_KEY, this.stub_node_name)
 	} else {
-		name = "true"
+		name = VALUE_TRUE
 	}
 	cypher = fmt.Sprintf(cypher,
 		pre_id,
@@ -115,15 +116,11 @@ func (this *n2j) Retrieve() interface{} {
 		panic(err)
 	}
 	var result map[string]interface{} = res[0][0].(map[string]interface{})
-	/*if v, ok := result[ROOT_NAME_KEY]; ok {
-		this.root_name = v.(string)
-	}*/
 	var root_labels []interface{} = result[LABELS_KEY].([]interface{})
 	switch len(root_labels) {
 	case 2:
 		this.root_type = TypeToLabel[root_labels[1].(string)]
 	case 3:
-		//this.root_label = root_labels[0].(string)
 		this.root_type = TypeToLabel[root_labels[2].(string)]
 	}
 	delete(result, LABELS_KEY)
@@ -160,12 +157,13 @@ func makeNode(node map[string]interface{}, node_type string) interface{} {
 		}
 		delete(node, DATA_KEY)
 	}
+	log.Warning("node:", node)
 	for k, v := range node {
 		switch node_type {
 		case TYPE_OBJECT:
 			outObject[k] = v
 		case TYPE_ARRAY:
-			i, _ := strconv.Atoi(k)
+			i, _ := strconv.Atoi(strings.Split(k, "_")[1])
 			outArray[i] = v
 		}
 	}

@@ -13,6 +13,7 @@ const (
 	TYPE_KEY      = "jn_type"
 	DATA_KEY      = "jn_data"
 	LABELS_KEY    = "jn_labels"
+	VALUE_TRUE    = "true"
 )
 
 var TypeToLabel = map[string]string{
