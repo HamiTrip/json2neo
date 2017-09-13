@@ -10,6 +10,7 @@ import (
 )
 
 /*
+TODO:: write tests and benchmarks
 TODO:: support for struct!
 */
 
