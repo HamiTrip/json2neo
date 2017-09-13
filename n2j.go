@@ -7,7 +7,6 @@ import (
 	"strconv"
 	"fmt"
 	"strings"
-	"hami/ums/base/log"
 )
 
 //TODO:: refactor to a better method!
@@ -157,7 +156,6 @@ func makeNode(node map[string]interface{}, node_type string) interface{} {
 		}
 		delete(node, DATA_KEY)
 	}
-	log.Warning("node:", node)
 	for k, v := range node {
 		switch node_type {
 		case TYPE_OBJECT:
