@@ -42,3 +42,12 @@ func DeleteBulkNodes(neo_conn golangNeo4jBoltDriver.Conn, stub_node_id int64, st
 		return res, nil
 	}
 }
+
+func firstPlace(s []interface{}, i interface{}) int {
+	for index, value := range s {
+		if value == i {
+			return index
+		}
+	}
+	return -1
+}
