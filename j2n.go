@@ -224,7 +224,7 @@ func (this *j2n) makeField(k, v interface{}, parent_var, parent_type string, par
 	case string:
 		v = strings.Replace(v.(string), "'", "\\'", -1)
 	}
-	var node_var string = fmt.Sprintf("%s_%v", parent_var, k)
+	var node_var string = strings.Replace(fmt.Sprintf("%s_%v", parent_var, k),"-","_",-1)
 	switch reflect.ValueOf(v).Kind() {
 	case reflect.Array, reflect.Slice:
 		this.Add(1)
