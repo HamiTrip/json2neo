@@ -9,6 +9,7 @@ const (
 	TYPE_OBJECT   = "object"
 	VAR_STUB      = "stub"
 	VAR_ROOT      = "root"
+	ID_KEY        = "_id"
 	ROOT_NAME_KEY = "jn_name"
 	TYPE_KEY      = "jn_type"
 	DATA_KEY      = "jn_data"

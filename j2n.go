@@ -13,6 +13,9 @@ import (
 TODO:: write tests and benchmarks
 TODO:: support for struct!
 TODO:: if wrote a method for get json instantly, must check json validity
+
+TODO:: an update model that don't have to delete nodes and lost node IDs:
+for example update each node with id! addition to normal update model
 */
 
 type J2N interface {
@@ -20,8 +23,8 @@ type J2N interface {
 	SetRootLabel(sl string) J2N
 	SetRootName(n string) J2N
 	SetConn(conn golangNeo4jBoltDriver.Conn) J2N
-	Insert(data interface{}) (id int64 , count int)
-	Submit(data interface{}) (id int64 , count int)
+	Insert(data interface{}) (id int64, count int)
+	Submit(data interface{}) (id int64, count int)
 
 	execCypher(cypher_part string) interface{}
 	cypherGenerator()
@@ -44,7 +47,7 @@ type j2n struct {
 }
 
 func (this *j2n) SetStubNode(node_id int64) J2N {
-	this.stub_cypher , this.has_stub = fmt.Sprintf("MATCH (%s) WHERE ID(%s) = %d\n", VAR_STUB, VAR_STUB, node_id) , true
+	this.stub_cypher, this.has_stub = fmt.Sprintf("MATCH (%s) WHERE ID(%s) = %d\n", VAR_STUB, VAR_STUB, node_id), true
 	return this
 }
 
@@ -54,7 +57,7 @@ func (this *j2n) SetConn(conn golangNeo4jBoltDriver.Conn) J2N {
 }
 
 func (this *j2n) SetRootLabel(rl string) J2N {
-	if strings.Contains(rl,":"){
+	if strings.Contains(rl, ":") {
 		panic("Only one lable are accepted!")
 	}
 	this.root_label = fmt.Sprintf(":%s", strings.ToUpper(rl))
@@ -66,11 +69,11 @@ func (this *j2n) SetRootName(n string) J2N {
 	return this
 }
 
-func (this *j2n) Submit(data interface{}) (id int64 , count int) {
+func (this *j2n) Submit(data interface{}) (id int64, count int) {
 	return this.Insert(data)
 }
 
-func (this *j2n) Insert(data interface{}) (id int64 , count int) {
+func (this *j2n) Insert(data interface{}) (id int64, count int) {
 	if !this.has_conn {
 		panic("Neo4j connection not found!")
 	}
@@ -85,7 +88,7 @@ func (this *j2n) Insert(data interface{}) (id int64 , count int) {
 	}
 	this.cypherGenerator()
 	this.Wait()
-	return this.root_id , this.total_nodes
+	return this.root_id, this.total_nodes
 }
 
 func (this *j2n) execCypher(cypher_part string) (res interface{}) {
@@ -173,7 +176,7 @@ func (this *j2n) create_nested(node_key interface{}, parent_var, parent_type, no
 	var cName string
 	if parent_type == TYPE_OBJECT {
 		cName = fmt.Sprintf(",name:'%v'", node_key)
-	}else if parent_type == TYPE_ARRAY {
+	} else if parent_type == TYPE_ARRAY {
 		cName = fmt.Sprintf(",name:'%v'", node_key)
 	}
 	parent_node_id := <-parent_c
@@ -226,7 +229,7 @@ func (this *j2n) makeField(k, v interface{}, parent_var, parent_type string, par
 	case string:
 		v = strings.Replace(v.(string), "'", "\\'", -1)
 	}
-	var node_var string = strings.Replace(fmt.Sprintf("%s_%v", parent_var, k),"-","_",-1)
+	var node_var string = strings.Replace(fmt.Sprintf("%s_%v", parent_var, k), "-", "_", -1)
 	switch reflect.ValueOf(v).Kind() {
 	case reflect.Array, reflect.Slice:
 		this.Add(1)
@@ -244,7 +247,7 @@ func (this *j2n) makeField(k, v interface{}, parent_var, parent_type string, par
 		switch k.(type) {
 		case string:
 			key = k.(string)
-			key = strings.Replace(key,"-","_",-1)
+			key = strings.Replace(key, "-", "_", -1)
 		case int:
 			key = fmt.Sprintf("k_%v", k)
 		}
