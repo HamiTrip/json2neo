@@ -8,8 +8,7 @@ import (
 
 //TODO:: bejaye inhame param ye struct begiram
 /*
-DeleteBulkNodes:
-Delete J2N generated node-tree(s) using stub and root information
+DeleteBulkNodes deletes J2N generated node-tree(s) using stub and root information
  */
 func DeleteBulkNodes(neoConn golangNeo4jBoltDriver.Conn, stubNodeID int64, rootNodeLabel, rootNodeName string, exceptNodeID int64) (golangNeo4jBoltDriver.Result, error) {
 	var cypher = `MATCH %s(root%s) WHERE %s AND %v AND %s
@@ -44,8 +43,7 @@ func DeleteBulkNodes(neoConn golangNeo4jBoltDriver.Conn, stubNodeID int64, rootN
 }
 
 /*
-FindRootIDByFields:
-Find root nodeID using root node information
+FindRootIDByFields finds root nodeID using root node information
  */
 func FindRootIDByFields(neoConn golangNeo4jBoltDriver.Conn, rootNodeLabel, rootNodeName string, conditions map[string]interface{}) (int64, error) {
 	var cypher = `MATCH (root%s)-[*..]->(leaf)
