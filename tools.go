@@ -7,6 +7,7 @@ import (
 )
 
 //TODO:: bejaye inhame param ye struct begiram
+
 /*
 DeleteBulkNodes deletes J2N generated node-tree(s) using stub and root information
  */
