@@ -7,50 +7,58 @@ import (
 )
 
 //TODO:: bejaye inhame param ye struct begiram
-func DeleteBulkNodes(neo_conn golangNeo4jBoltDriver.Conn, stub_node_id int64, root_node_label, root_node_name string, except_node_id int64) (golangNeo4jBoltDriver.Result, error) {
-	var cypher string = `MATCH %s(root%s) WHERE %s AND %v AND %s
+/*
+DeleteBulkNodes:
+Delete J2N generated node-tree(s) using stub and root information
+ */
+func DeleteBulkNodes(neoConn golangNeo4jBoltDriver.Conn, stubNodeID int64, rootNodeLabel, rootNodeName string, exceptNodeID int64) (golangNeo4jBoltDriver.Result, error) {
+	var cypher = `MATCH %s(root%s) WHERE %s AND %v AND %s
 			OPTIONAL MATCH (root)-[*..]->(leaf)
 			DETACH DELETE root,leaf`
-	var label, name, id, pre_id, except string
-	if root_node_label != "" {
-		label = ":" + strings.ToUpper(root_node_label)
+	var label, name, id, preID, except string
+	if rootNodeLabel != "" {
+		label = ":" + strings.ToUpper(rootNodeLabel)
 	}
-	if stub_node_id != -1 {
-		pre_id = fmt.Sprintf("(stub)-[rel%s]->", label)
-		id = fmt.Sprintf("ID(stub) = %d", stub_node_id)
+	if stubNodeID != -1 {
+		preID = fmt.Sprintf("(stub)-[rel%s]->", label)
+		id = fmt.Sprintf("ID(stub) = %d", stubNodeID)
 	} else {
 		id = ValueTrue
 	}
-	if root_node_name != "" {
-		name = fmt.Sprintf("root.%s = '%s'", RootNameKey, root_node_name)
+	if rootNodeName != "" {
+		name = fmt.Sprintf("root.%s = '%s'", RootNameKey, rootNodeName)
 	} else {
 		name = ValueTrue
 	}
-	if except_node_id != -1 {
-		except = fmt.Sprintf("ID(root) <> %v", except_node_id)
+	if exceptNodeID != -1 {
+		except = fmt.Sprintf("ID(root) <> %v", exceptNodeID)
 	}
 	cypher = fmt.Sprintf(cypher,
-		pre_id,
+		preID,
 		label,
 		id,
 		name,
 		except,
 	)
-	return neo_conn.ExecNeo(cypher, map[string]interface{}{})
+	return neoConn.ExecNeo(cypher, map[string]interface{}{})
 }
 
-func FindRootIDByFields(neo_conn golangNeo4jBoltDriver.Conn, root_node_label, root_node_name string, conditions map[string]interface{}) (int64, error) {
-	var cypher string = `MATCH (root%s)-[*..]->(leaf)
+/*
+FindRootIDByFields:
+Find root nodeID using root node information
+ */
+func FindRootIDByFields(neoConn golangNeo4jBoltDriver.Conn, rootNodeLabel, rootNodeName string, conditions map[string]interface{}) (int64, error) {
+	var cypher = `MATCH (root%s)-[*..]->(leaf)
 			WHERE %s AND
 			%s
 			RETURN ID(root)`
-	var conditions_cypher_stub string = "(root.%s =~ '%v' or leaf.%s =~ '%v') AND "
-	var label, name, conditions_cypher string
-	if root_node_label != "" {
-		label = ":" + strings.ToUpper(root_node_label)
+	var conditionsCypherStub = "(root.%s =~ '%v' or leaf.%s =~ '%v') AND "
+	var label, name, conditionsCypher string
+	if rootNodeLabel != "" {
+		label = ":" + strings.ToUpper(rootNodeLabel)
 	}
-	if root_node_name != "" {
-		name = fmt.Sprintf("root.%s =~ '(?i)%s'", RootNameKey, root_node_name)
+	if rootNodeName != "" {
+		name = fmt.Sprintf("root.%s =~ '(?i)%s'", RootNameKey, rootNodeName)
 	} else {
 		name = ValueTrue
 	}
@@ -59,15 +67,15 @@ func FindRootIDByFields(neo_conn golangNeo4jBoltDriver.Conn, root_node_label, ro
 		case string:
 			value = "(?i)" + value.(string)
 		}
-		conditions_cypher += fmt.Sprintf(conditions_cypher_stub, key, value, key, value)
+		conditionsCypher += fmt.Sprintf(conditionsCypherStub, key, value, key, value)
 	}
-	conditions_cypher += ValueTrue
+	conditionsCypher += ValueTrue
 	cypher = fmt.Sprintf(cypher,
 		label,
 		name,
-		conditions_cypher,
+		conditionsCypher,
 	)
-	res, _, _, err := neo_conn.QueryNeoAll(cypher, conditions)
+	res, _, _, err := neoConn.QueryNeoAll(cypher, conditions)
 	if err != nil {
 		panic(err)
 	}

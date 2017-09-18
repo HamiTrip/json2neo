@@ -22,10 +22,10 @@ for example update each node with id! addition to normal update model
 */
 
 /*
-Json to Neo4j interface
+J2N is Json to Neo4j interface
  */
 type J2N interface {
-	SetStubNode(nodeId int64) J2N
+	SetStubNode(nodeID int64) J2N
 	SetRootLabel(sl string) J2N
 	SetRootName(n string) J2N
 	SetConn(conn golangNeo4jBoltDriver.Conn) J2N
@@ -45,15 +45,15 @@ type j2n struct {
 	hasConn    bool
 	data       interface{}
 	dataType   string
-	rootId     int64
+	rootID     int64
 	rootName   string
 	rootLabel  string
 	hasStub    bool
 	stubCypher string
 }
 
-func (j2n *j2n) SetStubNode(nodeId int64) J2N {
-	j2n.stubCypher, j2n.hasStub = fmt.Sprintf("MATCH (%s) WHERE ID(%s) = %d\n", VarStub, VarStub, nodeId), true
+func (j2n *j2n) SetStubNode(nodeID int64) J2N {
+	j2n.stubCypher, j2n.hasStub = fmt.Sprintf("MATCH (%s) WHERE ID(%s) = %d\n", VarStub, VarStub, nodeID), true
 	return j2n
 }
 
@@ -94,7 +94,7 @@ func (j2n *j2n) Insert(data interface{}) (id int64, count int) {
 	}
 	j2n.cypherGenerator()
 	j2n.Wait()
-	return j2n.rootId, j2n.totalNodes
+	return j2n.rootID, j2n.totalNodes
 }
 
 func (j2n *j2n) execCypher(cypherPart string) (res interface{}) {
@@ -141,14 +141,14 @@ func (j2n *j2n) cypherGenerator() {
 		sfc,
 		VarRoot,
 	)
-	var nodeId = j2n.execCypher(cypher)
+	var nodeID = j2n.execCypher(cypher)
 	switch {
-	case nodeId == nil:
+	case nodeID == nil:
 		panic("Cannot create root node!")
 	default:
-		c <- int(nodeId.(int64))
-		j2n.rootId = nodeId.(int64)
-		fmt.Println("root_node_id:", nodeId, time.Now().Unix())
+		c <- int(nodeID.(int64))
+		j2n.rootID = nodeID.(int64)
+		fmt.Println("root_node_id:", nodeID, time.Now().Unix())
 	}
 
 }
@@ -185,9 +185,9 @@ func (j2n *j2n) createNested(nodeKey interface{}, parentVar, parentType, nodeTyp
 	} else if parentType == TypeArray {
 		cName = fmt.Sprintf(",name:'%v'", nodeKey)
 	}
-	parentNodeId := <-parentChan
-	parentChan <- parentNodeId
-	var parentCypher = fmt.Sprintf("MATCH (%s) WHERE ID(%s) = %d\n", parentVar, parentVar, parentNodeId)
+	parentNodeID := <-parentChan
+	parentChan <- parentNodeID
+	var parentCypher = fmt.Sprintf("MATCH (%s) WHERE ID(%s) = %d\n", parentVar, parentVar, parentNodeID)
 	var cypher = fmt.Sprintf(
 		"%s \n CREATE (%s)-[:%s {type:'%s'%s}]->(%s:%s {%s}) RETURN ID(%s)\n",
 		parentCypher,
@@ -200,12 +200,12 @@ func (j2n *j2n) createNested(nodeKey interface{}, parentVar, parentType, nodeTyp
 		sfc,
 		nodeVar,
 	)
-	var nodeId = j2n.execCypher(cypher)
+	var nodeID = j2n.execCypher(cypher)
 	switch {
-	case nodeId == nil:
+	case nodeID == nil:
 		panic("Cannot create node: " + cypher)
 	default:
-		c <- int(nodeId.(int64))
+		c <- int(nodeID.(int64))
 		j2n.Done()
 	}
 }
@@ -262,6 +262,9 @@ func (j2n *j2n) makeField(k, v interface{}, parentVar, parentType string, parent
 	return
 }
 
+/*
+NewJ2N is J2N factory method
+ */
 func NewJ2N(conn golangNeo4jBoltDriver.Conn) J2N {
 	return new(j2n).SetConn(conn)
 

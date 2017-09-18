@@ -1,5 +1,8 @@
 package json2neo
 
+/*
+Constants of general cypher parts
+ */
 const (
 	LabelHasNested = "JN_HAS_NESTED"
 	LabelRootNode = "JN_ROOT_NODE"
@@ -9,7 +12,7 @@ const (
 	TypeObject = "object"
 	VarStub = "stub"
 	VarRoot = "root"
-	IdKey = "_id"
+	IDKey = "_id"
 	RootNameKey = "jn_name"
 	TypeKey = "jn_type"
 	DataKey = "jn_data"
@@ -18,7 +21,7 @@ const (
 )
 
 /*
-Convert labels to type and vise versa
+TypeToLabel is map of labels to type and vise versa
  */
 var TypeToLabel = map[string]string{
 	TypeArray:  LabelArrProp,
