@@ -6,6 +6,7 @@ import (
 	"github.com/johnnadratowski/golang-neo4j-bolt-driver"
 )
 
+//TODO:: bejaye inhame param ye struct begiram
 func DeleteBulkNodes(neo_conn golangNeo4jBoltDriver.Conn, stub_node_id int64, root_node_label, root_node_name string, except_node_id int64) (golangNeo4jBoltDriver.Result, error) {
 	var cypher string = `MATCH %s(root%s) WHERE %s AND %v AND %s
 			OPTIONAL MATCH (root)-[*..]->(leaf)
