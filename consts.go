@@ -1,25 +1,28 @@
 package json2neo
 
 const (
-	L_HAS_NESTED  = "JN_HAS_NESTED"
-	L_ROOT_NODE   = "JN_ROOT_NODE"
-	L_OBJ_PROP    = "JN_OBJ_PROP"
-	L_ARR_PROP    = "JN_ARR_PROP"
-	TYPE_ARRAY    = "array"
-	TYPE_OBJECT   = "object"
-	VAR_STUB      = "stub"
-	VAR_ROOT      = "root"
-	ID_KEY        = "_id"
-	ROOT_NAME_KEY = "jn_name"
-	TYPE_KEY      = "jn_type"
-	DATA_KEY      = "jn_data"
-	LABELS_KEY    = "jn_labels"
-	VALUE_TRUE    = "true"
+	LabelHasNested = "JN_HAS_NESTED"
+	LabelRootNode = "JN_ROOT_NODE"
+	LabelObjProp = "JN_OBJ_PROP"
+	LabelArrProp = "JN_ARR_PROP"
+	TypeArray = "array"
+	TypeObject = "object"
+	VarStub = "stub"
+	VarRoot = "root"
+	IdKey = "_id"
+	RootNameKey = "jn_name"
+	TypeKey = "jn_type"
+	DataKey = "jn_data"
+	LabelsKey = "jn_labels"
+	ValueTrue = "true"
 )
 
+/*
+Convert labels to type and vise versa
+ */
 var TypeToLabel = map[string]string{
-	TYPE_ARRAY:  L_ARR_PROP,
-	TYPE_OBJECT: L_OBJ_PROP,
-	L_ARR_PROP:  TYPE_ARRAY,
-	L_OBJ_PROP:  TYPE_OBJECT,
+	TypeArray:  LabelArrProp,
+	TypeObject: LabelObjProp,
+	LabelArrProp:  TypeArray,
+	LabelObjProp:  TypeObject,
 }

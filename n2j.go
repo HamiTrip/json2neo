@@ -10,8 +10,12 @@ import (
 )
 
 //TODO:: refactor to a better method!
+
+/*
+Neo4j to Json interface
+ */
 type N2J interface {
-	SetStubNode(node_id int64) N2J
+	SetStubNode(nodeId int64) N2J
 	SetRootLabel(sl string) N2J
 	SetRootName(n string) N2J
 	SetConn(conn golangNeo4jBoltDriver.Conn) N2J
@@ -23,171 +27,168 @@ type N2J interface {
 type n2j struct {
 	sync.Mutex
 	sync.WaitGroup
-	out                 interface{}
-	neo_conn            golangNeo4jBoltDriver.Conn
-	has_conn            bool
-	root_id             int64
-	//root_node           graph.Node
-	//root_name           string
-	//root_label          string
-	root_type           string
-	stub_node_id        int64
-	stub_node_id_filled bool
-	stub_node_label     string
-	stub_node_name      string
-	multi_root_found    bool
-	with_id             bool
+	out              interface{}
+	neoConn          golangNeo4jBoltDriver.Conn
+	hasConn          bool
+	rootId           int64
+	rootType         string
+	stubNodeId       int64
+	stubNodeIdFilled bool
+	stubNodeLabel    string
+	stubNodeName     string
+	multiRootFound   bool
+	withId           bool
 }
 
-func (this *n2j) SetStubNode(node_id int64) N2J {
-	this.stub_node_id = node_id
-	this.stub_node_id_filled = true
-	this.findRootNodeIDByStub()
-	return this
+func (n2j *n2j) SetStubNode(nodeId int64) N2J {
+	n2j.stubNodeId = nodeId
+	n2j.stubNodeIdFilled = true
+	n2j.findRootNodeIDByStub()
+	return n2j
 }
 
-func (this *n2j) SetRootLabel(sl string) N2J {
-	this.stub_node_label = sl
-	this.findRootNodeIDByStub()
-	return this
+func (n2j *n2j) SetRootLabel(sl string) N2J {
+	n2j.stubNodeLabel = sl
+	n2j.findRootNodeIDByStub()
+	return n2j
 }
 
-func (this *n2j) SetRootName(n string) N2J {
-	this.stub_node_name = n
-	this.findRootNodeIDByStub()
-	return this
+func (n2j *n2j) SetRootName(n string) N2J {
+	n2j.stubNodeName = n
+	n2j.findRootNodeIDByStub()
+	return n2j
 }
 
-func (this *n2j) findRootNodeIDByStub() {
-	var cypher string = "MATCH %s(root%s) WHERE %s AND %v RETURN ID(root)"
-	var label, name, id, pre_id string
-	if this.stub_node_label != "" {
-		label = ":" + strings.ToUpper(this.stub_node_label)
+func (n2j *n2j) findRootNodeIDByStub() {
+	var cypher = "MATCH %s(root%s) WHERE %s AND %v RETURN ID(root)"
+	var label, name, id, preId string
+	if n2j.stubNodeLabel != "" {
+		label = ":" + strings.ToUpper(n2j.stubNodeLabel)
 	}
-	if this.stub_node_id_filled {
-		pre_id = fmt.Sprintf("(stub)-[rel%s]->", label)
-		id = fmt.Sprintf("ID(stub) = %d", this.stub_node_id)
+	if n2j.stubNodeIdFilled {
+		preId = fmt.Sprintf("(stub)-[rel%s]->", label)
+		id = fmt.Sprintf("ID(stub) = %d", n2j.stubNodeId)
 	} else {
-		id = VALUE_TRUE
+		id = ValueTrue
 	}
-	if this.stub_node_name != "" {
-		name = fmt.Sprintf("root.%s = '%s'", ROOT_NAME_KEY, this.stub_node_name)
+	if n2j.stubNodeName != "" {
+		name = fmt.Sprintf("root.%s = '%s'", RootNameKey, n2j.stubNodeName)
 	} else {
-		name = VALUE_TRUE
+		name = ValueTrue
 	}
 	cypher = fmt.Sprintf(cypher,
-		pre_id,
+		preId,
 		label,
 		id,
 		name,
 	)
-	res, _, _, err := this.neo_conn.QueryNeoAll(cypher, map[string]interface{}{})
+	res, _, _, err := n2j.neoConn.QueryNeoAll(cypher, map[string]interface{}{})
 	if err != nil {
 		panic(err)
 	}
 	if len(res) == 0 {
 		panic("stub_not_found")
 	}
-	this.root_id = res[0][0].(int64)
-	this.multi_root_found = len(res) > 1
+	n2j.rootId = res[0][0].(int64)
+	n2j.multiRootFound = len(res) > 1
 }
 
-func (this *n2j) SetRootNodeID(id int64) N2J {
-	this.root_id = id
-	this.multi_root_found = false
-	return this
+func (n2j *n2j) SetRootNodeID(id int64) N2J {
+	n2j.rootId = id
+	n2j.multiRootFound = false
+	return n2j
 }
 
-func (this *n2j) SetConn(conn golangNeo4jBoltDriver.Conn) N2J {
-	this.neo_conn, this.has_conn = conn, true
-	return this
+func (n2j *n2j) SetConn(conn golangNeo4jBoltDriver.Conn) N2J {
+	n2j.neoConn, n2j.hasConn = conn, true
+	return n2j
 }
 func findTypeByLabels(labels []interface{}) string {
-	if firstPlace(labels, L_ARR_PROP) >= 0 {
-		return TypeToLabel[L_ARR_PROP]
+	if firstPlace(labels, LabelArrProp) >= 0 {
+		return TypeToLabel[LabelArrProp]
 	}
-	if firstPlace(labels, L_OBJ_PROP) >= 0 {
-		return TypeToLabel[L_OBJ_PROP]
+	if firstPlace(labels, LabelObjProp) >= 0 {
+		return TypeToLabel[LabelObjProp]
 	}
 	return ""
 }
 
-func (this *n2j) WithId(b bool) N2J {
-	this.with_id = b
-	return this
+func (n2j *n2j) WithId(b bool) N2J {
+	n2j.withId = b
+	return n2j
 }
 
-func (this *n2j) Retrieve() interface{} {
-	if !this.has_conn {
+func (n2j *n2j) Retrieve() interface{} {
+	if !n2j.hasConn {
 		panic("neo4j_connection_not_found")
 	}
-	if this.multi_root_found {
+	if n2j.multiRootFound {
 		panic("multiple_root_nodes_found")
 	}
 	var cypher string
-	this.queryBuilder(&cypher, this.maxLenFinder() + 1)
-	res, _, _, err := this.neo_conn.QueryNeoAll(cypher, gin.H{})
+	n2j.queryBuilder(&cypher, n2j.maxLenFinder() + 1)
+	res, _, _, err := n2j.neoConn.QueryNeoAll(cypher, gin.H{})
 	if err != nil {
 		panic(err)
 	}
-	var result map[string]interface{} = res[0][0].(map[string]interface{})
-	var root_labels []interface{} = result[LABELS_KEY].([]interface{})
-	this.root_type = findTypeByLabels(root_labels)
-	delete(result, LABELS_KEY)
-	this.out = this.makeNode(result, this.root_type)
-	return this.out
+	var result = res[0][0].(map[string]interface{})
+	var rootLabels = result[LabelsKey].([]interface{})
+	n2j.rootType = findTypeByLabels(rootLabels)
+	delete(result, LabelsKey)
+	n2j.out = n2j.makeNode(result, n2j.rootType)
+	return n2j.out
 
 }
 
-func (this *n2j) makeNode(node map[string]interface{}, node_type string) interface{} {
-	//var node_name string = node[ROOT_NAME_KEY]
-	delete(node, ROOT_NAME_KEY)
+func (n2j *n2j) makeNode(node map[string]interface{}, nodeType string) interface{} {
+	//var nodeName string = node[ROOT_NAME_KEY]
+	delete(node, RootNameKey)
 	var outArray []interface{}
 	var outObject map[string]interface{}
-	if node_type == "" {
-		node_type = node[TYPE_KEY].(string)
+	if nodeType == "" {
+		nodeType = node[TypeKey].(string)
 	}
-	delete(node, TYPE_KEY)
-	switch node_type {
-	case TYPE_OBJECT:
+	delete(node, TypeKey)
+	switch nodeType {
+	case TypeObject:
 		outObject = make(map[string]interface{})
-	case TYPE_ARRAY:
-		if this.with_id {
+	case TypeArray:
+		if n2j.withId {
 			outArray = make([]interface{}, getArrayNodeLen(node) - 1)
 		} else {
 			outArray = make([]interface{}, getArrayNodeLen(node))
 		}
 	}
-	if children, ok := node[DATA_KEY]; ok {
+	if children, ok := node[DataKey]; ok {
 		for _, child := range children.([]interface{}) {
-			var child_node map[string]interface{} = child.(map[string]interface{})
-			switch node_type {
-			case TYPE_OBJECT:
-				outObject[child_node[ROOT_NAME_KEY].(string)] = this.makeNode(child_node, "")
-			case TYPE_ARRAY:
-				i, _ := strconv.Atoi(child_node[ROOT_NAME_KEY].(string))
-				outArray[i] = this.makeNode(child_node, "")
+			var childNode = child.(map[string]interface{})
+			switch nodeType {
+			case TypeObject:
+				outObject[childNode[RootNameKey].(string)] = n2j.makeNode(childNode, "")
+			case TypeArray:
+				i, _ := strconv.Atoi(childNode[RootNameKey].(string))
+				outArray[i] = n2j.makeNode(childNode, "")
 			}
 		}
-		delete(node, DATA_KEY)
+		delete(node, DataKey)
 	}
 	for k, v := range node {
-		switch node_type {
-		case TYPE_OBJECT:
+		switch nodeType {
+		case TypeObject:
 			outObject[k] = v
-		case TYPE_ARRAY:
+		case TypeArray:
 			//TODO:: write a func for convert keys:
-			if k == ID_KEY && this.with_id {
+			if k == IdKey && n2j.withId {
 				continue
 			}
 			i, _ := strconv.Atoi(strings.Split(k, "_")[1])
 			outArray[i] = v
 		}
 	}
-	switch node_type {
-	case TYPE_OBJECT:
+	switch nodeType {
+	case TypeObject:
 		return outObject
-	case TYPE_ARRAY:
+	case TypeArray:
 		return outArray
 	default:
 		return nil
@@ -195,97 +196,89 @@ func (this *n2j) makeNode(node map[string]interface{}, node_type string) interfa
 }
 
 func getArrayNodeLen(node map[string]interface{}) (cnt int) {
-	if children, ok := node[DATA_KEY]; ok {
+	if children, ok := node[DataKey]; ok {
 		cnt += len(children.([]interface{})) - 1
 	}
 	return cnt + len(node)
 }
 
-func (this *n2j) maxLenFinder() int {
-	var cypher string = "match (n)-[a *..]->(leaf) where id(n) = {root_id} return a"
-	res, _, _, err := this.neo_conn.QueryNeoAll(cypher, gin.H{"root_id":this.root_id})
+func (n2j *n2j) maxLenFinder() int {
+	var cypher = "match (n)-[a *..]->(leaf) where id(n) = {root_id} return a"
+	res, _, _, err := n2j.neoConn.QueryNeoAll(cypher, gin.H{"root_id":n2j.rootId})
 	if err != nil {
 		panic(err)
 	}
-	var maxLen int = 0
+	var maxLen int
 	for _, v := range res {
-		var len int = len(v[0].([]interface{}))
-		if len > maxLen {
-			maxLen = len
+		var length = len(v[0].([]interface{}))
+		if length > maxLen {
+			maxLen = length
 		}
 	}
 	return maxLen
 }
 
-func (this *n2j) queryBuilder(query *string, size int) {
-	var id_part string
-	*query += fmt.Sprintf("START root1=node(%d)\n", this.root_id)
+func (n2j *n2j) queryBuilder(query *string, size int) {
+	var idPart string
+	*query += fmt.Sprintf("START root1=node(%d)\n", n2j.rootId)
 	for i := 1; i < size; i++ {
-		itext := strconv.Itoa(i)
-		iplus := strconv.Itoa(i + 1)
-		//*query += "OPTIONAL MATCH (root" + itext + ")-[rel" + iplus + "]->(root" + iplus + ")\n"
-		*query += fmt.Sprintf("OPTIONAL MATCH (root%s)-[rel%s]->(root%s)\n", itext, iplus, iplus)
+		var iPlus = i + 1
+		*query += fmt.Sprintf("OPTIONAL MATCH (root%d)-[rel%d]->(root%d)\n", i, iPlus, iPlus)
 	}
-	for i := size; i > 0; i-- {
-		itext := strconv.Itoa(i)
+	for index := size; index > 0; index-- {
 		var data string
-		if i != 1 {
-			if this.with_id {
-				id_part = fmt.Sprintf(" ,%s:ID(root%s) ", ID_KEY, itext)
+		if index != 1 {
+			if n2j.withId {
+				idPart = fmt.Sprintf(" ,%s:ID(root%d) ", IdKey, index)
 			} else {
-				id_part = ""
+				idPart = ""
 			}
-			if i == size {
-				//data = "WITH COLLECT(root" + itext + " {.*, " + TYPE_KEY + ":rel" + itext + ".type, " + ROOT_NAME_KEY + ":rel" + itext + ".name}) as root" + itext
-				data = fmt.Sprintf("WITH COLLECT(root%s {.* %s, %s:rel%s.type, %s:rel%s.name}) as root%s",
-					itext,
-					id_part,
-					TYPE_KEY,
-					itext,
-					ROOT_NAME_KEY,
-					itext,
-					itext,
+			if index == size {
+				data = fmt.Sprintf("WITH COLLECT(root%d {.* %s, %s:rel%d.type, %s:rel%d.name}) as root%d",
+					index,
+					idPart,
+					TypeKey,
+					index,
+					RootNameKey,
+					index,
+					index,
 				)
 
 			} else {
-				//data = "WITH COLLECT(root" + itext + " {.*, " + TYPE_KEY + ":rel" + itext + ".type, " + ROOT_NAME_KEY + ":rel" + itext + ".name, " + DATA_KEY + ":root" + strconv.Itoa(i + 1) + "}) as root" + itext
-				data = fmt.Sprintf("WITH COLLECT(root%s {.* %s, %s:rel%s.type, %s:rel%s.name, %s:root%d}) as root%s",
-					itext,
-					id_part,
-					TYPE_KEY,
-					itext,
-					ROOT_NAME_KEY,
-					itext,
-					DATA_KEY,
-					i + 1,
-					itext,
+				data = fmt.Sprintf("WITH COLLECT(root%d {.* %s, %s:rel%d.type, %s:rel%d.name, %s:root%d}) as root%d",
+					index,
+					idPart,
+					TypeKey,
+					index,
+					RootNameKey,
+					index,
+					DataKey,
+					index + 1,
+					index,
 				)
 			}
-
-			for j := 1; j < i; j++ {
-				if i == j {
+			for j := 1; j < index; j++ {
+				if index == j {
 					continue
 				}
-				jtext := strconv.Itoa(j)
-				data += ",root" + jtext
+				data += fmt.Sprintf(",root%d", j)
 				if j != 1 {
-					data += ",rel" + jtext
+					data += fmt.Sprintf(",rel%d", j)
 				}
 			}
 		} else {
-			if this.with_id {
-				id_part = fmt.Sprintf(" ,%s:ID(root1) ", ID_KEY)
+			if n2j.withId {
+				idPart = fmt.Sprintf(" ,%s:ID(root1) ", IdKey)
 			} else {
-				id_part = ""
+				idPart = ""
 			}
-			data = "WITH root1 {.*, " + LABELS_KEY + ":labels(root1), " + DATA_KEY + ":root2} as root1"
 			data = fmt.Sprintf("WITH root1 {.* %s, %s:labels(root1), %s:root2} as root1",
-				id_part,
-				LABELS_KEY,
-				DATA_KEY,
+				idPart,
+				LabelsKey,
+				DataKey,
 			)
 		}
-		*query += data + "\n"
+		*query += fmt.Sprintf("%s\n", data)
 	}
 	*query += "RETURN root1"
 }
