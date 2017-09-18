@@ -19,12 +19,12 @@ func DeleteBulkNodes(neo_conn golangNeo4jBoltDriver.Conn, stub_node_id int64, ro
 		pre_id = fmt.Sprintf("(stub)-[rel%s]->", label)
 		id = fmt.Sprintf("ID(stub) = %d", stub_node_id)
 	} else {
-		id = VALUE_TRUE
+		id = ValueTrue
 	}
 	if root_node_name != "" {
-		name = fmt.Sprintf("root.%s = '%s'", ROOT_NAME_KEY, root_node_name)
+		name = fmt.Sprintf("root.%s = '%s'", RootNameKey, root_node_name)
 	} else {
-		name = VALUE_TRUE
+		name = ValueTrue
 	}
 	if except_node_id != -1 {
 		except = fmt.Sprintf("ID(root) <> %v", except_node_id)
@@ -50,9 +50,9 @@ func FindRootIDByFields(neo_conn golangNeo4jBoltDriver.Conn, root_node_label, ro
 		label = ":" + strings.ToUpper(root_node_label)
 	}
 	if root_node_name != "" {
-		name = fmt.Sprintf("root.%s =~ '(?i)%s'", ROOT_NAME_KEY, root_node_name)
+		name = fmt.Sprintf("root.%s =~ '(?i)%s'", RootNameKey, root_node_name)
 	} else {
-		name = VALUE_TRUE
+		name = ValueTrue
 	}
 	for key, value := range conditions {
 		switch value.(type) {
@@ -61,7 +61,7 @@ func FindRootIDByFields(neo_conn golangNeo4jBoltDriver.Conn, root_node_label, ro
 		}
 		conditions_cypher += fmt.Sprintf(conditions_cypher_stub, key, value, key, value)
 	}
-	conditions_cypher += VALUE_TRUE
+	conditions_cypher += ValueTrue
 	cypher = fmt.Sprintf(cypher,
 		label,
 		name,
