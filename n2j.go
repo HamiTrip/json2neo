@@ -72,7 +72,7 @@ func (n2j *n2j) findRootNodeIDByStub() {
 		id = ValueTrue
 	}
 	if n2j.stubNodeName != "" {
-		name = fmt.Sprintf("root.%s = '%s'", RootNameKey, n2j.stubNodeName)
+		name = fmt.Sprintf("root.%s =~ '(?i)%s'", RootNameKey, n2j.stubNodeName)
 	} else {
 		name = ValueTrue
 	}
