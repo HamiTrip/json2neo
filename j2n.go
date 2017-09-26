@@ -2,10 +2,10 @@ package json2neo
 
 import (
 	"fmt"
+	"github.com/johnnadratowski/golang-neo4j-bolt-driver"
 	"reflect"
 	"strings"
 	"sync"
-	"github.com/johnnadratowski/golang-neo4j-bolt-driver"
 	"time"
 )
 
@@ -23,7 +23,7 @@ for example update each node with id! addition to normal update model
 
 /*
 J2N is Json to Neo4j interface
- */
+*/
 type J2N interface {
 	SetStubNode(nodeID int64) J2N
 	SetRootLabel(sl string) J2N
@@ -264,7 +264,7 @@ func (j2n *j2n) makeField(k, v interface{}, parentVar, parentType string, parent
 
 /*
 NewJ2N is J2N factory method
- */
+*/
 func NewJ2N(conn golangNeo4jBoltDriver.Conn) J2N {
 	return new(j2n).SetConn(conn)
 

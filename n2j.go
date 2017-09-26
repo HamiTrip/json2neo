@@ -1,19 +1,19 @@
 package json2neo
 
 import (
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/johnnadratowski/golang-neo4j-bolt-driver"
-	"sync"
 	"strconv"
-	"fmt"
 	"strings"
+	"sync"
 )
 
 //TODO:: refactor to a better method!
 
 /*
 N2J is Neo4j to Json interface
- */
+*/
 type N2J interface {
 	SetStubNode(nodeID int64) N2J
 	SetRootLabel(sl string) N2J
@@ -72,7 +72,7 @@ func (n2j *n2j) findRootNodeIDByStub() {
 		id = ValueTrue
 	}
 	if n2j.stubNodeName != "" {
-		name = fmt.Sprintf("root.%s = '%s'", RootNameKey, n2j.stubNodeName)
+		name = fmt.Sprintf("root.%s =~ '(?i)%s'", RootNameKey, n2j.stubNodeName)
 	} else {
 		name = ValueTrue
 	}
@@ -126,7 +126,7 @@ func (n2j *n2j) Retrieve() interface{} {
 		panic("multiple_root_nodes_found")
 	}
 	var cypher string
-	n2j.queryBuilder(&cypher, n2j.maxLenFinder() + 1)
+	n2j.queryBuilder(&cypher, n2j.maxLenFinder()+1)
 	res, _, _, err := n2j.neoConn.QueryNeoAll(cypher, gin.H{})
 	if err != nil {
 		panic(err)
@@ -154,7 +154,7 @@ func (n2j *n2j) makeNode(node map[string]interface{}, nodeType string) interface
 		outObject = make(map[string]interface{})
 	case TypeArray:
 		if n2j.withID {
-			outArray = make([]interface{}, getArrayNodeLen(node) - 1)
+			outArray = make([]interface{}, getArrayNodeLen(node)-1)
 		} else {
 			outArray = make([]interface{}, getArrayNodeLen(node))
 		}
@@ -204,7 +204,7 @@ func getArrayNodeLen(node map[string]interface{}) (cnt int) {
 
 func (n2j *n2j) maxLenFinder() int {
 	var cypher = "match (n)-[a *..]->(leaf) where id(n) = {root_id} return a"
-	res, _, _, err := n2j.neoConn.QueryNeoAll(cypher, gin.H{"root_id":n2j.rootID})
+	res, _, _, err := n2j.neoConn.QueryNeoAll(cypher, gin.H{"root_id": n2j.rootID})
 	if err != nil {
 		panic(err)
 	}
@@ -253,7 +253,7 @@ func (n2j *n2j) queryBuilder(query *string, size int) {
 					RootNameKey,
 					index,
 					DataKey,
-					index + 1,
+					index+1,
 					index,
 				)
 			}
@@ -285,7 +285,7 @@ func (n2j *n2j) queryBuilder(query *string, size int) {
 
 /*
 NewN2J is N2J factory method
- */
+*/
 func NewN2J(conn golangNeo4jBoltDriver.Conn) N2J {
 	return new(n2j).SetConn(conn)
 }

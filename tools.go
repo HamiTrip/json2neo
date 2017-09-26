@@ -1,16 +1,16 @@
 package json2neo
 
 import (
-	"strings"
 	"fmt"
 	"github.com/johnnadratowski/golang-neo4j-bolt-driver"
+	"strings"
 )
 
 //TODO:: bejaye inhame param ye struct begiram
 
 /*
 DeleteBulkNodes deletes J2N generated node-tree(s) using stub and root information
- */
+*/
 func DeleteBulkNodes(neoConn golangNeo4jBoltDriver.Conn, stubNodeID int64, rootNodeLabel, rootNodeName string, exceptNodeID int64) (golangNeo4jBoltDriver.Result, error) {
 	var cypher = `MATCH %s(root%s) WHERE %s AND %v AND %s
 			OPTIONAL MATCH (root)-[*..]->(leaf)
@@ -45,7 +45,7 @@ func DeleteBulkNodes(neoConn golangNeo4jBoltDriver.Conn, stubNodeID int64, rootN
 
 /*
 FindRootIDByFields finds root nodeID using root node information
- */
+*/
 func FindRootIDByFields(neoConn golangNeo4jBoltDriver.Conn, rootNodeLabel, rootNodeName string, conditions map[string]interface{}) (int64, error) {
 	var cypher = `MATCH (root%s)-[*..]->(leaf)
 			WHERE %s AND
