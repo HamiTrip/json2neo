@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"hami/ums/base/log"
 )
 
 //TODO:: refactor to a better method!
@@ -18,6 +19,7 @@ type N2J interface {
 	SetStubNode(nodeID int64) N2J
 	SetRootLabel(sl string) N2J
 	SetRootName(n string) N2J
+	SetRootPair(key, value string) N2J
 	SetConn(conn golangNeo4jBoltDriver.Conn) N2J
 	SetRootNodeID(id int64) N2J
 	WithID(b bool) N2J
@@ -35,7 +37,8 @@ type n2j struct {
 	stubNodeID       int64
 	stubNodeIDFilled bool
 	stubNodeLabel    string
-	stubNodeName     string
+	stubNodeKey      string
+	stubNodeValue    string
 	multiRootFound   bool
 	withID           bool
 }
@@ -54,7 +57,15 @@ func (n2j *n2j) SetRootLabel(sl string) N2J {
 }
 
 func (n2j *n2j) SetRootName(n string) N2J {
-	n2j.stubNodeName = n
+	n2j.stubNodeKey = RootNameKey
+	n2j.stubNodeValue = n
+	n2j.findRootNodeIDByStub()
+	return n2j
+}
+
+func (n2j *n2j) SetRootPair(key, value string) N2J {
+	n2j.stubNodeKey = key
+	n2j.stubNodeValue = value
 	n2j.findRootNodeIDByStub()
 	return n2j
 }
@@ -66,13 +77,13 @@ func (n2j *n2j) findRootNodeIDByStub() {
 		label = ":" + strings.ToUpper(n2j.stubNodeLabel)
 	}
 	if n2j.stubNodeIDFilled {
-		preID = fmt.Sprintf("(stub)-[rel%s]->", label)
+		preID = fmt.Sprintf("(stub)-[rel%s *..]->", label)
 		id = fmt.Sprintf("ID(stub) = %d", n2j.stubNodeID)
 	} else {
 		id = ValueTrue
 	}
-	if n2j.stubNodeName != "" {
-		name = fmt.Sprintf("root.%s =~ '(?i)%s'", RootNameKey, n2j.stubNodeName)
+	if n2j.stubNodeValue != "" {
+		name = fmt.Sprintf("root.%s =~ '(?i)%s'", n2j.stubNodeKey, n2j.stubNodeValue)
 	} else {
 		name = ValueTrue
 	}
@@ -82,6 +93,7 @@ func (n2j *n2j) findRootNodeIDByStub() {
 		id,
 		name,
 	)
+	log.Info("cypher:",cypher)
 	res, _, _, err := n2j.neoConn.QueryNeoAll(cypher, map[string]interface{}{})
 	if err != nil {
 		panic(err)
@@ -89,6 +101,7 @@ func (n2j *n2j) findRootNodeIDByStub() {
 	if len(res) == 0 {
 		panic("stub_not_found")
 	}
+	log.Warning("res:",res)
 	n2j.rootID = res[0][0].(int64)
 	n2j.multiRootFound = len(res) > 1
 }
@@ -126,7 +139,7 @@ func (n2j *n2j) Retrieve() interface{} {
 		panic("multiple_root_nodes_found")
 	}
 	var cypher string
-	n2j.queryBuilder(&cypher, n2j.maxLenFinder()+1)
+	n2j.queryBuilder(&cypher, n2j.maxLenFinder() + 1)
 	res, _, _, err := n2j.neoConn.QueryNeoAll(cypher, gin.H{})
 	if err != nil {
 		panic(err)
@@ -154,7 +167,7 @@ func (n2j *n2j) makeNode(node map[string]interface{}, nodeType string) interface
 		outObject = make(map[string]interface{})
 	case TypeArray:
 		if n2j.withID {
-			outArray = make([]interface{}, getArrayNodeLen(node)-1)
+			outArray = make([]interface{}, getArrayNodeLen(node) - 1)
 		} else {
 			outArray = make([]interface{}, getArrayNodeLen(node))
 		}
@@ -253,7 +266,7 @@ func (n2j *n2j) queryBuilder(query *string, size int) {
 					RootNameKey,
 					index,
 					DataKey,
-					index+1,
+					index + 1,
 					index,
 				)
 			}
@@ -272,15 +285,23 @@ func (n2j *n2j) queryBuilder(query *string, size int) {
 			} else {
 				idPart = ""
 			}
-			data = fmt.Sprintf("WITH root1 {.* %s, %s:labels(root1), %s:root2} as root1",
-				idPart,
-				LabelsKey,
-				DataKey,
-			)
+			if size > 1 {
+				data = fmt.Sprintf("WITH root1 {.* %s, %s:labels(root1), %s:root2} as root1",
+					idPart,
+					LabelsKey,
+					DataKey,
+				)
+			}else {
+				data = fmt.Sprintf("WITH root1 {.* %s, %s:labels(root1)} as root1",
+					idPart,
+					LabelsKey,
+				)
+			}
 		}
 		*query += fmt.Sprintf("%s\n", data)
 	}
 	*query += "RETURN root1"
+	log.Fine("query:",*query)
 }
 
 /*

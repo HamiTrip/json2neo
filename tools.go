@@ -26,7 +26,7 @@ func DeleteBulkNodes(neoConn golangNeo4jBoltDriver.Conn, stubNodeID int64, rootN
 		id = ValueTrue
 	}
 	if rootNodeName != "" {
-		name = fmt.Sprintf("root.%s = '%s'", RootNameKey, rootNodeName)
+		name = fmt.Sprintf("root.%s =~ '(?i)%s'", RootNameKey, rootNodeName)
 	} else {
 		name = ValueTrue
 	}
