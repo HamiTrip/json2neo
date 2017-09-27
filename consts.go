@@ -4,6 +4,7 @@ package json2neo
 Constants of general cypher parts
 */
 const (
+	DefaultLabel   = "JN_NODE"
 	LabelHasNested = "JN_HAS_NESTED"
 	LabelRootNode  = "JN_ROOT_NODE"
 	LabelObjProp   = "JN_OBJ_PROP"

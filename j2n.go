@@ -52,13 +52,13 @@ type j2n struct {
 	stubCypher string
 }
 
-func (j2n *j2n) SetStubNode(nodeID int64) J2N {
-	j2n.stubCypher, j2n.hasStub = fmt.Sprintf("MATCH (%s) WHERE ID(%s) = %d\n", VarStub, VarStub, nodeID), true
+func (j2n *j2n) SetConn(conn golangNeo4jBoltDriver.Conn) J2N {
+	j2n.neoConn, j2n.hasConn = conn, true
 	return j2n
 }
 
-func (j2n *j2n) SetConn(conn golangNeo4jBoltDriver.Conn) J2N {
-	j2n.neoConn, j2n.hasConn = conn, true
+func (j2n *j2n) SetStubNode(nodeID int64) J2N {
+	j2n.stubCypher, j2n.hasStub = fmt.Sprintf("MATCH (%s) WHERE ID(%s) = %d\n", VarStub, VarStub, nodeID), true
 	return j2n
 }
 
@@ -130,13 +130,14 @@ func (j2n *j2n) cypherGenerator() {
 		sfc = "," + strings.Join(fc, ",")
 	}
 	var cypher = fmt.Sprintf(
-		"%s\n CREATE %s(%s%s:%s:%s {%s%s}) RETURN ID(%s)\n",
+		"%s\n CREATE %s(%s%s:%s:%s:%s {%s%s}) RETURN ID(%s)\n",
 		j2n.stubCypher,
 		j2n.getStubCypherPart(),
 		VarRoot,
 		j2n.rootLabel,
 		typeLabel,
 		LabelRootNode,
+		DefaultLabel,
 		j2n.getRootNameCypherPart(),
 		sfc,
 		VarRoot,
@@ -172,7 +173,7 @@ func (j2n *j2n) getRootNameCypherPart() (c string) {
 func (j2n *j2n) createNested(nodeKey interface{}, parentVar, parentType, nodeType, nodeVar string, properties interface{}, parentChan chan int) {
 	var nodeTypeLabel string
 	switch nodeType {
-	case TypeArray:
+	case TypeArray: //TODO:: null ro skip konam
 		nodeTypeLabel = LabelArrProp
 	case TypeObject:
 		nodeTypeLabel = LabelObjProp
@@ -189,7 +190,7 @@ func (j2n *j2n) createNested(nodeKey interface{}, parentVar, parentType, nodeTyp
 	parentChan <- parentNodeID
 	var parentCypher = fmt.Sprintf("MATCH (%s) WHERE ID(%s) = %d\n", parentVar, parentVar, parentNodeID)
 	var cypher = fmt.Sprintf(
-		"%s \n CREATE (%s)-[:%s {type:'%s'%s}]->(%s:%s {%s}) RETURN ID(%s)\n",
+		"%s \n CREATE (%s)-[:%s {type:'%s'%s}]->(%s:%s:%s {%s}) RETURN ID(%s)\n",
 		parentCypher,
 		parentVar,
 		LabelHasNested,
@@ -197,6 +198,7 @@ func (j2n *j2n) createNested(nodeKey interface{}, parentVar, parentType, nodeTyp
 		cName,
 		nodeVar,
 		nodeTypeLabel,
+		DefaultLabel,
 		sfc,
 		nodeVar,
 	)
