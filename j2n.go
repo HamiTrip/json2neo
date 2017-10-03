@@ -100,14 +100,21 @@ func (j2n *j2n) Insert(data interface{}) (id int64, count int) {
 func (j2n *j2n) execCypher(cypherPart string) (res interface{}) {
 	if strings.TrimSpace(cypherPart) != "" {
 		j2n.Lock()
-		result, err := j2n.neoConn.QueryNeo(cypherPart, map[string]interface{}{})
+		result, err := j2n.neoConn.QueryNeo(cypherPart, map[string]interface{}{}) // TODO::Neo.ClientError.Schema.ConstraintValidationFailed // recoveram nemishe!!!
 		if err == nil {
 			r, _, _ := result.All()
 			res = r[0][0]
 			result.Close()
 			j2n.totalNodes++
 		} else {
-			panic(err)
+			switch err.(type){
+			/*case *errors.Error:
+				if err.(*errors.Error).Inner().(messages.FailureMessage).Metadata["code"].(string) == "Neo.ClientError.Schema.ConstraintValidationFailed" {
+
+				}*/
+			default:
+				panic(err)
+			}
 		}
 		j2n.Unlock()
 	}

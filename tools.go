@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/johnnadratowski/golang-neo4j-bolt-driver"
 	"strings"
+	"hami/ums/base/log"
 )
 
 //TODO:: bejaye inhame param ye struct begiram
@@ -50,7 +51,7 @@ func FindRootIDByFields(neoConn golangNeo4jBoltDriver.Conn, rootNodeLabel, rootN
 	var cypher = `MATCH (root%s)-[*..]->(leaf)
 			WHERE %s AND
 			%s
-			RETURN ID(root)`
+			RETURN DISTINCT ID(root)`
 	var conditionsCypherStub = "(root.%s =~ '%v' or leaf.%s =~ '%v') AND "
 	var label, name, conditionsCypher string
 	if rootNodeLabel != "" {
@@ -78,6 +79,8 @@ func FindRootIDByFields(neoConn golangNeo4jBoltDriver.Conn, rootNodeLabel, rootN
 	if err != nil {
 		panic(err)
 	}
+	log.Info("cypher:",cypher)
+	log.Warning("res:",res)
 	if len(res) == 0 {
 		panic("node_not_found")
 	} else if len(res) > 1 {
