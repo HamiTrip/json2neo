@@ -7,7 +7,6 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"hami/ums/base/log"
 )
 
 //TODO:: refactor to a better method!
@@ -138,7 +137,6 @@ func (n2j *n2j) findRootNodeIDByStub() {
 	case int64:
 		n2j.rootID = res[0][0].(int64)
 	}
-	log.Warning("res:",res)
 	n2j.multiRootFound = len(res) > 1
 }
 
